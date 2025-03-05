@@ -2,6 +2,8 @@
 
 Find the story here: [https://cj-robinson.github.io/citi-bike-deserts](https://cj-robinson.github.io/citi-bike-deserts/)
 
+Find the HTML here: [https://github.com/cj-robinson/cj-robinson.github.io/blob/main/citi-bike-deserts/index.html](https://github.com/cj-robinson/cj-robinson.github.io/blob/main/citi-bike-deserts/index.html)
+
 ### Overview/Findings
 
 I analyzed Citi Bike station availability throughout the fall of 2024 using a scraper that attempted to run every 10 minutes. As a newly minted Citi Bike member myself, I have often found myself attmepting to dock a bike in a neighborhood where others were also circling waiting for dock space to open up. I found that these deserts occur throughout the city and often have a time-based dimensions in morning and evening rushes. 
