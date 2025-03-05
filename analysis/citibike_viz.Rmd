@@ -1,0 +1,452 @@
+---
+title: "CitiBike Desert Analysis"
+author: "CJ Robinson"
+date: "2025-03-04"
+output: html_document
+---
+
+## Citi Bike Deserts
+
+This analysis takes data scraped from Citibike stations from August to November 2024 to examine the prevelance of Citi Bike 'deserts' where docks are either full or empty on average of 20% or more of the time. It examines different time periods of morning and evening rushes and midday.
+
+### Set up
+
+```{r setup}
+library(tidyverse)
+library(lubridate)
+library(sf)
+library(tigris)
+library(gganimate)
+library(clipr)
+
+
+# load in scraped data and mapping data
+citibike <- read_csv("../data/citibike_110724.csv")
+stations <- read_sf("../data/stations_geo_110724.geojson")
+
+
+roads_data = primary_secondary_roads("NY") 
+landmarks_data = landmarks("NY", type = 'area') 
+tracts_data = tracts("NY", county =c("New York", "Kings", "Queens", "Bronx")) 
+nj_tracts_data = tracts("NJ", county =c("Bergen", "Hudson")) 
+
+nyc_boroughs <- counties(state = "NY", cb = TRUE, class = "sf") %>%
+  filter(NAME %in% c("New York", "Kings", "Queens", "Bronx")) %>% 
+  st_transform(., crs = st_crs(stations) )# NYC borough counties 
+
+nj <- counties(state = "NJ", cb = TRUE, class = "sf")  
+
+nyc_water = area_water(state = "NY", county = c("New York", "Kings", "Queens", "Bronx") ) 
+
+nj_water = area_water(state = "NJ", county = c("Bergen", "Hudson") )
+```
+
+### Calculates initial analysis
+
+```{r}
+
+hourly_citibike <- citibike %>%
+  # get stations in servie
+  filter(is_renting == 1, is_returning == 1) %>%
+  # cleans data and makes flag variables
+  mutate(last_updated = ymd_hms(last_updated),
+         in_service = ifelse(num_docks_available == 0 | num_bikes_available + num_ebikes_available == 0, 0, 1),
+         docks_available = ifelse(num_docks_available == 0, 0, 1),
+         bikes_available = ifelse(num_bikes_available + num_ebikes_available == 0, 0, 1),
+         weekend = ifelse(wday(last_updated, week_start = 1) < 6, "weekday", "weekend")) %>%
+  # groups by hour/weekend
+  group_by(service_hour = hour(last_updated), station_id, weekend) %>%
+  # summarize stats
+  summarize(
+    avg_available = mean(num_docks_available / capacity, na.rm = TRUE),
+    returning = mean(docks_available, na.rm = TRUE),
+    renting = mean(bikes_available, na.rm = TRUE),
+    in_service = mean(in_service, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  # categorizes based on returning/renting
+  mutate(
+    rent_return_status = case_when(
+      returning <= 0.8 ~ "Full Station (More than 20%)",
+      returning <= 0.9 ~ "Full Station (More than 10%)",
+      renting <= 0.8 ~ "Empty Station (More than 20%)",
+      renting <= 0.9 ~ "Empty Station (More than 10%)",
+      .default = "Okay"
+    ),
+    service_status = case_when(
+      in_service > 0.9 ~ "Good (Above 90%)",
+      in_service <= 0.9 & in_service >= 0.8 ~ "Okay (Between 90% and 80%)",
+      in_service < 0.8 ~ "Bad (Less than 80%)"
+    )
+  ) %>%  
+  left_join(stations, by = "station_id") %>% 
+  st_as_sf(sf_column_name = 'geometry') %>%
+  st_intersection(nyc_boroughs)  %>%  
+  filter(!st_is_empty(geometry))
+
+limits = st_bbox(hourly_citibike$geometry)
+```
+
+### Mapping Areas
+
+#### Finding peak times for issues
+
+```{r}
+hourly_citibike %>% 
+  filter(weekend == "weekday", service_hour >= 5, service_hour <= 20) %>% 
+  group_by(service_hour) %>% 
+  summarize(returning = 1- mean(returning),
+            renting = 1 - mean(renting)) %>% 
+  pivot_longer(cols = c("renting", "returning"), names_to = "rent_return", values_to = "percentage") %>% 
+  ggplot(aes(x = service_hour, y = percentage)) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(~rent_return) +
+  scale_x_continuous(breaks = unique(hourly_citibike$service_hour))+
+  coord_flip() + 
+  theme_minimal()
+
+```
+
+```{r}
+hourly_citibike %>% 
+  filter(weekend == "weekday", service_hour >= 5, service_hour <= 20) %>% 
+  group_by(service_hour) %>% 
+  summarize(returning = 1- mean(returning),
+            renting = 1 - mean(renting)) %>% 
+  pivot_longer(cols = c("renting", "returning"), names_to = "rent_return", values_to = "percentage") %>% 
+  ggplot(aes(x = service_hour, y = percentage, fill = rent_return)) + 
+  geom_bar(stat = "identity") + 
+  theme_minimal()
+
+ggsave("/Documents/github/citi-bike-deserts/img/columns.pdf", width = 375, height = 700, units = 'px')
+```
+
+
+We'll look at 7AM, noon, and 3PM as reference points
+
+#### Entire Map -- 7AM
+
+```{r fig.width=5}
+hourly_citibike %>%  
+  filter(service_hour == 7, weekend == "weekday") %>%
+  ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(aes(color = service_status), size = .4) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
+           ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = 'white', color = 'white')) +
+  guides(color = "none")
+
+ggsave("../img/full_city_7am.pdf", width = 5)
+```
+
+#### Entire Map -- 12PM
+
+```{r, fig.width = 5}
+hourly_citibike %>%  
+  filter(service_hour == 12, weekend == "weekday") %>%
+  ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(aes(color = service_status), size = .4) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
+           ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = 'white', color = 'white')) +
+  guides(color = "none")
+
+
+
+ggsave("../img/full_city_12pm.pdf", width = 5)
+```
+
+#### Entire Map -- 3PM
+
+```{r, fig.width = 5}
+hourly_citibike %>%  
+  filter(service_hour == 15, weekend == "weekday") %>%
+  ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(aes(color = service_status), size = .4) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
+           ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = 'white', color = 'white')) +
+  guides(color = "none")
+
+ggsave("../img/full_city_3pm.pdf", width = 5)
+
+```
+
+----
+
+### East Village 
+
+```{r}
+hourly_citibike %>%  
+  filter(service_hour == 7, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+coord_sf(xlim = c(-73.99, -73.97), 
+        ylim = c(40.72, 40.74), 
+        expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/evillage_7am.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 12, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+coord_sf(xlim = c(-73.99, -73.97), 
+        ylim = c(40.72, 40.74), 
+        expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/evillage_12pm.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 15, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+coord_sf(xlim = c(-73.99, -73.97), 
+        ylim = c(40.72, 40.74), 
+        expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/evillage_3pm.png", width = 200, height = 200, units = 'px')
+
+
+```
+
+
+
+----
+
+### Midtown
+
+```{r}
+hourly_citibike %>%  
+  filter(service_hour == 7, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+  coord_sf(xlim = c(-73.985, -73.965), 
+         ylim = c(40.75, 40.77), 
+         expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/midtown_7am.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 12, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+  coord_sf(xlim = c(-73.985, -73.965), 
+         ylim = c(40.75, 40.77), 
+         expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/midtown_12pm.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 15, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'white', color = "white") + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(aes(color = service_status), size = 1) +
+  coord_sf(xlim = c(-73.985, -73.965), 
+         ylim = c(40.75, 40.77), 
+         expand = FALSE) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/midtown_3pm.pdf", width = 200, height = 200, units = 'px')
+ggsave("../img/midtown_3pm.png", width = 200, height = 200, units = 'px')
+
+
+```
+
+------
+
+#### W Village
+
+```{r}
+hourly_citibike %>%  
+  filter(service_hour == 7, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+coord_sf(xlim = c(-74.02, -74.00), 
+         ylim = c(40.71, 40.73), 
+         expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/wvillage_7am.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 12, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(aes(color = service_status), size = 1) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+coord_sf(xlim = c(-74.02, -74.00), 
+         ylim = c(40.71, 40.73), 
+         expand = FALSE) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/wvillage_12pm.png", width = 200, height = 200, units = 'px')
+
+
+hourly_citibike %>%  
+  filter(service_hour == 15, weekend == "weekday") %>%
+ggplot() + 
+  geom_sf(data = nyc_boroughs, color = "white", fill = "#FAFAFA") +
+  geom_sf(data = tracts_data, color = "white", fill = "#FAFAFA") + 
+  geom_sf(data = nyc_water, fill = 'lightblue', color = "white") + 
+  geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
+  geom_sf(data = roads_data, color = '#E6E6E6') + 
+  geom_sf(aes(color = service_status), size = 1) +
+coord_sf(xlim = c(-74.02, -74.00), 
+         ylim = c(40.71, 40.73), 
+         expand = FALSE) +
+  scale_color_manual(name = "Average Service Status", 
+                     values = c("Good (Above 90%)" = "green", 
+                                "Okay (Between 90% and 80%)" = "orange", 
+                                "Bad (Less than 80%)" = "red")) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = 'white', color = 'white'),
+    aspect.ratio = 1
+  ) +
+  guides(color = "none")
+
+ggsave("../img/wvillage_3pm.png", width = 200, height = 200, units = 'px')
+
+
+```
+
