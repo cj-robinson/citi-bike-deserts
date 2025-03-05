@@ -114,11 +114,12 @@ hourly_citibike %>%
   summarize(returning = 1- mean(returning),
             renting = 1 - mean(renting)) %>% 
   pivot_longer(cols = c("renting", "returning"), names_to = "rent_return", values_to = "percentage") %>% 
-  ggplot(aes(x = service_hour, y = percentage, fill = rent_return)) + 
+  ggplot(aes(x = desc(service_hour), y = percentage, fill = rent_return)) + 
   geom_bar(stat = "identity") + 
+  coord_flip() +
   theme_minimal()
 
-ggsave("/Documents/github/citi-bike-deserts/img/columns.pdf", width = 375, height = 700, units = 'px')
+ggsave("/Users/cjrobinson/Documents/github/citi-bike-deserts/img/bars.pdf", width = 4, height = 6)
 ```
 
 
