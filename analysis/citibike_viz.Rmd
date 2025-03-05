@@ -309,7 +309,7 @@ ggplot() +
     aspect.ratio = 1
   ) +
   guides(color = "none") + 
-  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
+  annotate("text", x = -73.975, y = 40.7685, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
 
 ggsave("../img/midtown_7am.png", width = 200, height = 200, units = 'px')
 
@@ -336,7 +336,7 @@ ggplot() +
     aspect.ratio = 1
   ) +
   guides(color = "none") + 
-  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
+  annotate("text", x = -73.975, y = 40.7685, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
 
 ggsave("../img/midtown_12pm.png", width = 200, height = 200, units = 'px')
 
@@ -363,7 +363,7 @@ ggplot() +
     aspect.ratio = 1
   ) +
   guides(color = "none") + 
-  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
+  annotate("text", x = -73.975, y = 40.7685, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
 
 
 ggsave("../img/midtown_3pm.pdf", width = 200, height = 200, units = 'px')
