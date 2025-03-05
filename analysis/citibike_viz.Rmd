@@ -137,7 +137,7 @@ hourly_citibike %>%
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
   geom_sf(aes(color = service_status), size = .4) +
-  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "#4caf50", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
   coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
            ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
   theme_void() +
@@ -159,7 +159,7 @@ hourly_citibike %>%
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
   geom_sf(aes(color = service_status), size = .4) +
-  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "#4caf50", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
   coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
            ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
   theme_void() +
@@ -183,7 +183,7 @@ hourly_citibike %>%
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   #geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
   geom_sf(aes(color = service_status), size = .4) +
-  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "green", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
+  scale_color_manual(name = "Average Service Status", values = c("Good (Above 90%)" = "#4caf50", "Okay (Between 90% and 80%)" = "orange", "Bad (Less than 80%)" = "red")) +
   coord_sf(xlim = c(as.numeric(limits$xmin),as.numeric(limits$xmax)), 
            ylim = c(as.numeric(limits$ymin),as.numeric(limits$ymax))) +
   theme_void() +
@@ -208,12 +208,13 @@ ggplot() +
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
-coord_sf(xlim = c(-73.99, -73.97), 
-        ylim = c(40.72, 40.74), 
-        expand = FALSE) +
+ coord_sf(xlim = c(-73.988, -73.968), 
+           ylim = c(40.72, 40.74), 
+           expand = FALSE) + 
+  annotate("text", x = -73.97, y = 40.735, label = "East\nRiver", color = "darkblue", size = 1, fontface = "italic") +
   theme_void() +
   theme(
     plot.background = element_rect(fill = 'white', color = 'white'),
@@ -233,12 +234,13 @@ ggplot() +
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
-coord_sf(xlim = c(-73.99, -73.97), 
-        ylim = c(40.72, 40.74), 
-        expand = FALSE) +
+ coord_sf(xlim = c(-73.988, -73.968), 
+           ylim = c(40.72, 40.74), 
+           expand = FALSE) + 
+  annotate("text", x = -73.97, y = 40.735, label = "East\nRiver", color = "darkblue", size = 1, fontface = "italic") +
   theme_void() +
   theme(
     plot.background = element_rect(fill = 'white', color = 'white'),
@@ -258,12 +260,13 @@ ggplot() +
   geom_sf(data = roads_data, color = '#E6E6E6') + 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
-coord_sf(xlim = c(-73.99, -73.97), 
-        ylim = c(40.72, 40.74), 
-        expand = FALSE) +
+ coord_sf(xlim = c(-73.988, -73.968), 
+           ylim = c(40.72, 40.74), 
+           expand = FALSE) + 
+  annotate("text", x = -73.97, y = 40.735, label = "East\nRiver", color = "darkblue", size = 1, fontface = "italic") +
   theme_void() +
   theme(
     plot.background = element_rect(fill = 'white', color = 'white'),
@@ -294,7 +297,7 @@ ggplot() +
 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
   coord_sf(xlim = c(-73.985, -73.965), 
@@ -305,7 +308,8 @@ ggplot() +
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") + 
+  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
 
 ggsave("../img/midtown_7am.png", width = 200, height = 200, units = 'px')
 
@@ -320,7 +324,7 @@ ggplot() +
   geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
   coord_sf(xlim = c(-73.985, -73.965), 
@@ -331,7 +335,8 @@ ggplot() +
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") + 
+  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
 
 ggsave("../img/midtown_12pm.png", width = 200, height = 200, units = 'px')
 
@@ -349,7 +354,7 @@ ggplot() +
          ylim = c(40.75, 40.77), 
          expand = FALSE) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
   theme_void() +
@@ -357,7 +362,9 @@ ggplot() +
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") + 
+  annotate("text", x = -73.975, y = 40.7679, label = "Central Park", color = "darkgreen", size = 1, fontface = "italic")
+
 
 ggsave("../img/midtown_3pm.pdf", width = 200, height = 200, units = 'px')
 ggsave("../img/midtown_3pm.png", width = 200, height = 200, units = 'px')
@@ -381,7 +388,7 @@ ggplot() +
 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
 coord_sf(xlim = c(-74.02, -74.00), 
@@ -392,7 +399,9 @@ coord_sf(xlim = c(-74.02, -74.00),
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") +
+  annotate("text", x = -74.017, y = 40.725, label = "Hudson\nRiver", color = "darkblue", size = 1, fontface = "italic")
+
 
 ggsave("../img/wvillage_7am.png", width = 200, height = 200, units = 'px')
 
@@ -407,7 +416,7 @@ ggplot() +
   geom_sf(data = landmarks_data, color = 'white', fill = "#dfede0") + 
   geom_sf(aes(color = service_status), size = 1) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
 coord_sf(xlim = c(-74.02, -74.00), 
@@ -418,7 +427,9 @@ coord_sf(xlim = c(-74.02, -74.00),
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") +
+    annotate("text", x = -74.017, y = 40.725, label = "Hudson\nRiver", color = "darkblue", size = 1, fontface = "italic")
+
 
 ggsave("../img/wvillage_12pm.png", width = 200, height = 200, units = 'px')
 
@@ -436,7 +447,7 @@ coord_sf(xlim = c(-74.02, -74.00),
          ylim = c(40.71, 40.73), 
          expand = FALSE) +
   scale_color_manual(name = "Average Service Status", 
-                     values = c("Good (Above 90%)" = "green", 
+                     values = c("Good (Above 90%)" = "#4caf50", 
                                 "Okay (Between 90% and 80%)" = "orange", 
                                 "Bad (Less than 80%)" = "red")) +
   theme_void() +
@@ -444,7 +455,9 @@ coord_sf(xlim = c(-74.02, -74.00),
     plot.background = element_rect(fill = 'white', color = 'white'),
     aspect.ratio = 1
   ) +
-  guides(color = "none")
+  guides(color = "none") +
+    annotate("text", x = -74.017, y = 40.725, label = "Hudson\nRiver", color = "darkblue", size = 1, fontface = "italic")
+
 
 ggsave("../img/wvillage_3pm.png", width = 200, height = 200, units = 'px')
 
